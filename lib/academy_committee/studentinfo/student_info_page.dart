@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:score_culculating_project/academy_committee/studentinfo/AddStudentPage.dart';
-import 'package:score_culculating_project/academy_committee/studentinfo/AddStudentPage.dart' show Student;
+import 'AddStudentPage.dart';
+import 'AddStudentPage.dart' show Student;
+import 'package:score_culculating_project/academy_committee/Interface documentation/ApiService.dart';
 
 class StudentInfoPage extends StatefulWidget {
   const StudentInfoPage({super.key});
@@ -14,7 +16,6 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
   List<Student> students = [];
   String? selectedClass;
   String? selectedOrg;
-
   List<String> classes = ['全部班级', '班级A', '班级B', '班级C'];
   List<String> organizations = ['全部组织', '组织X', '组织Y', '组织Z'];
 
@@ -24,21 +25,29 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
     _loadStudents();
   }
 
-  // 从 SharedPreferences 中加载学生数据
   Future<void> _loadStudents() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> savedStudents = prefs.getStringList('students') ?? [];
-    setState(() {
-      students = savedStudents.map((studentJson) {
-        return Student.fromJson(studentJson); // 假设 Student 类有 fromJson 方法
-      }).toList();
-    });
+    try {
+      // 调用接口获取并保存学生数据
+      await ApiService().fetchAndSaveStudents();
+
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> savedStudents = prefs.getStringList('students') ?? [];
+      setState(() {
+        students = savedStudents.map((studentJson) {
+          return Student.fromJson(json.decode(studentJson));
+        }).toList();
+      });
+    } catch (e) {
+      // 显示错误提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('获取学生信息失败: $e')),
+      );
+    }
   }
 
-  // 保存学生数据到 SharedPreferences
   Future<void> _saveStudents() async {
     final prefs = await SharedPreferences.getInstance();
-    List<String> studentJsons = students.map((student) => student.toJson()).toList(); // 假设 Student 类有 toJson 方法
+    List<String> studentJsons = students.map((student) => json.encode(student.toJson())).toList();
     await prefs.setStringList('students', studentJsons);
   }
 
@@ -66,7 +75,7 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
                 setState(() {
                   students.add(newStudent);
                 });
-                await _saveStudents(); // 添加后保存学生数据
+                await _saveStudents();
               }
             },
           ),
@@ -74,7 +83,6 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
       ),
       body: Column(
         children: [
-          // 筛选班级和组织
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
@@ -113,7 +121,6 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
               ],
             ),
           ),
-          // 学生列表
           Expanded(
             child: filteredStudents.isEmpty
                 ? Center(child: Text('暂无学生数据'))
@@ -156,14 +163,14 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
                               setState(() {
                                 students[index] = updatedStudent;
                               });
-                              _saveStudents(); // 更新后保存数据
+                              _saveStudents();
                             }
                           });
                         } else if (value == 'delete') {
                           setState(() {
                             students.removeAt(index);
                           });
-                          _saveStudents(); // 删除后保存数据
+                          _saveStudents();
                         }
                       },
                       itemBuilder: (context) => [
@@ -187,7 +194,6 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
     );
   }
 }
-
 
 
 

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-
-import 'AddPointsDetailPage.dart';
+import 'package:score_culculating_project/academy_committee/addpointsverification/AddPointsDetailPage.dart';
+import 'package:score_culculating_project/academy_committee/Interface documentation/ApiService.dart'; // 接口请求方法在这个文件中
 
 class AddPointsVerificationPage extends StatefulWidget {
   const AddPointsVerificationPage({super.key});
@@ -23,45 +23,14 @@ class _AddPointsVerificationPageState extends State<AddPointsVerificationPage> {
   }
 
   Future<void> _loadActivities() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getStringList('pointsActivities') ?? [];
+    // 从接口获取并保存活动学生加分信息
+    await ApiService().fetchAndSaveActivityStudentPoints();
 
-    if (data.isEmpty) {
-      // 初始 mock 数据
-      final mockData = [
-        {
-          'id': 'A1',
-          'name': '春游加分',
-          'time': '2025-04-01',
-          'college': '计算机学院',
-          'status': '未审批',
-          'students': [
-            {'name': '张三', 'id': '2021001', 'points': 5},
-            {'name': '李四', 'id': '2021002', 'points': 12},
-          ]
-        },
-        {
-          'id': 'A2',
-          'name': '科技竞赛',
-          'time': '2025-03-28',
-          'college': '软件学院',
-          'status': '已审批',
-          'students': [
-            {'name': '王五', 'id': '2021003', 'points': -3},
-            {'name': '赵六', 'id': '2021004', 'points': 6},
-          ]
-        }
-      ];
-      prefs.setStringList('pointsActivities',
-          mockData.map((e) => json.encode(e)).toList());
-      setState(() {
-        activities = mockData;
-      });
-    } else {
-      setState(() {
-        activities = data.map((e) => json.decode(e)).cast<Map<String, dynamic>>().toList();
-      });
-    }
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getStringList('activityStudentPoints')?? [];
+    setState(() {
+      activities = data.map((e) => json.decode(e)).cast<Map<String, dynamic>>().toList();
+    });
   }
 
   int get unapprovedCount =>
@@ -80,7 +49,7 @@ class _AddPointsVerificationPageState extends State<AddPointsVerificationPage> {
       return a;
     }).toList();
     await prefs.setStringList(
-        'pointsActivities', updated.map((e) => json.encode(e)).toList());
+        'activityStudentPoints', updated.map((e) => json.encode(e)).toList());
     setState(() {
       activities = updated;
     });
@@ -107,7 +76,7 @@ class _AddPointsVerificationPageState extends State<AddPointsVerificationPage> {
             child: Row(
               children: [
                 Text('未核验活动：$unapprovedCount 个', style: TextStyle(fontWeight: FontWeight.bold)),
-                Spacer(),
+                const Spacer(),
                 DropdownButton<String>(
                   value: selectedStatus,
                   items: ['全部', '未审批', '已审批']
@@ -115,7 +84,7 @@ class _AddPointsVerificationPageState extends State<AddPointsVerificationPage> {
                       .toList(),
                   onChanged: (val) => setState(() => selectedStatus = val!),
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 DropdownButton<String>(
                   value: selectedCollege,
                   items: colleges
@@ -143,7 +112,7 @@ class _AddPointsVerificationPageState extends State<AddPointsVerificationPage> {
                         Text('状态：${a['status']}'),
                       ],
                     ),
-                    trailing: Icon(Icons.chevron_right),
+                    trailing: const Icon(Icons.chevron_right),
                     onTap: () {
                       Navigator.push(
                         context,

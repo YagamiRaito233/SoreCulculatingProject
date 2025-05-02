@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:score_culculating_project/academy_committee/activityApproval/ActivityDetailPage.dart';
+import 'ActivityDetailPage.dart';
+import 'package:score_culculating_project/academy_committee/Interface documentation/ApiService.dart';
+
+
 
 class ActivityApprovalPage extends StatefulWidget {
   const ActivityApprovalPage({super.key});
@@ -14,44 +17,8 @@ class _ActivityApprovalPageState extends State<ActivityApprovalPage> {
   String? selectedStatus = '未审批';
   String? selectedCollege = '学院A';
   List<Map<String, String>> activities = [];
-
-  final List<Map<String, String>> exampleActivities = [
-    {
-      'name': '春游集会',
-      'status': '未审批',
-      'time': '2025-04-18 08:00',
-      'teacher': '张老师',
-      'college': '学院A',
-    },
-    {
-      'name': '篮球联赛',
-      'status': '未审批',
-      'time': '2025-04-20 14:30',
-      'teacher': '李老师',
-      'college': '学院B',
-    },
-    {
-      'name': '红歌大赛',
-      'status': '已审批',
-      'time': '2025-03-25 19:00',
-      'teacher': '赵老师',
-      'college': '学院C',
-    },
-    {
-      'name': '校园科技节',
-      'status': '未审批',
-      'time': '2025-04-28 10:00',
-      'teacher': '王老师',
-      'college': '学院A',
-    },
-    {
-      'name': '诗词朗诵会',
-      'status': '已审批',
-      'time': '2025-03-30 18:30',
-      'teacher': '钱老师',
-      'college': '学院B',
-    },
-  ];
+  bool isLoading = false;
+  String? errorMessage;
 
   @override
   void initState() {
@@ -60,18 +27,31 @@ class _ActivityApprovalPageState extends State<ActivityApprovalPage> {
   }
 
   Future<void> _loadActivities() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String>? saved = prefs.getStringList('activities');
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
 
-    if (saved == null || saved.isEmpty) {
-      final encoded = exampleActivities.map((e) => jsonEncode(e)).toList();
-      await prefs.setStringList('activities', encoded);
-      setState(() => activities = exampleActivities);
-    } else {
+    try {
+      // 调用接口获取活动数据
+      await ApiService().fetchAndSaveActivities();
+      final prefs = await SharedPreferences.getInstance();
+      final List<String>? saved = prefs.getStringList('activities');
+
+      if (saved != null) {
+        setState(() {
+          activities = saved.map((e) => Map<String, String>.from(jsonDecode(e))).toList();
+        });
+      }
+    } catch (e) {
       setState(() {
-        activities = saved.map((e) => Map<String, String>.from(jsonDecode(e))).toList();
+        errorMessage = '获取活动数据失败: $e';
       });
     }
+
+    setState(() {
+      isLoading = false;
+    });
   }
 
   Future<void> _saveActivities() async {
@@ -127,54 +107,62 @@ class _ActivityApprovalPageState extends State<ActivityApprovalPage> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
-          Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.all(16),
-              itemCount: filtered.length,
-              itemBuilder: (context, index) {
-                final a = filtered[index];
-                return Card(
-                  elevation: 3,
-                  margin: EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    title: Text(a['name'] ?? ''),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('时间：${a['time']}'),
-                        Text('负责人：${a['teacher']}'),
-                        Text('学院：${a['college']}'),
-                      ],
-                    ),
-                    trailing: Icon(Icons.arrow_forward_ios),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ActivityDetailPage(
-                            activityName: a['name']!,
-                            activityteacher: a['teacher']!,
-                            activitydate: a['time']!,
-                            activitycollege: a['college']!,
-                            updateStatus: (status) => updateActivityStatus(a['name']!, status),
+          if (isLoading)
+            Expanded(
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (errorMessage != null)
+            Expanded(
+              child: Center(
+                child: Text(errorMessage!),
+              ),
+            )
+          else
+            Expanded(
+              child: ListView.builder(
+                padding: EdgeInsets.all(16),
+                itemCount: filtered.length,
+                itemBuilder: (context, index) {
+                  final a = filtered[index];
+                  return Card(
+                    elevation: 3,
+                    margin: EdgeInsets.only(bottom: 12),
+                    child: ListTile(
+                      title: Text(a['name'] ?? ''),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('时间：${a['time']}'),
+                          Text('负责人：${a['teacher']}'),
+                          Text('学院：${a['college']}'),
+                        ],
+                      ),
+                      trailing: Icon(Icons.arrow_forward_ios),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ActivityDetailPage(
+                              activityName: a['name']!,
+                              activityteacher: a['teacher']!,
+                              activitydate: a['time']!,
+                              activitycollege: a['college']!,
+                              updateStatus: (status) => updateActivityStatus(a['name']!, status),
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
         ],
       ),
     );
   }
 }
-
-
-
-
-
 
 
