@@ -1,11 +1,49 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:score_culculating_project/faculty/activitylist/add_points_page.dart';
+import 'package:score_culculating_project/faculty/Interface/ApiService.dart';
+import 'dart:convert';
 
-class ActivityDetailPage extends StatelessWidget {
-  const ActivityDetailPage({super.key});
+class ActivityDetailPage extends StatefulWidget {
+  // 定义 activity 参数
+  final Map<String, dynamic> activity;
+
+  const ActivityDetailPage({super.key, required this.activity});
+
+  @override
+  State<ActivityDetailPage> createState() => _ActivityDetailPageState();
+}
+
+class _ActivityDetailPageState extends State<ActivityDetailPage> {
+  Map<String, dynamic> currentActivity = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadActivityDetails();
+  }
+
+  Future<void> _loadActivityDetails() async {
+    try {
+      // 假设接口有根据活动 ID 获取详情的接口
+      Dio dio = Dio();
+      Response response = await dio.get('${ApiService.baseUrl}/activities/${widget.activity['id']}');
+      if (response.statusCode == 200) {
+        setState(() {
+          currentActivity = response.data;
+        });
+      } else {
+        print('获取活动详情失败: HTTP状态码为 ${response.statusCode}.');
+      }
+    } catch (e) {
+      print('获取活动详情失败: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final activity = currentActivity.isNotEmpty ? currentActivity : widget.activity;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -38,7 +76,7 @@ class ActivityDetailPage extends StatelessWidget {
             Padding(
               padding: EdgeInsets.all(16),
               child: Text(
-                "迎新晚会",
+                activity['name'] ?? "未知活动",
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
             ),
@@ -66,7 +104,7 @@ class ActivityDetailPage extends StatelessWidget {
             Padding(
               padding: EdgeInsets.all(16),
               child: Text(
-                "A组织",
+                activity['organization'] ?? "未知组织",
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),

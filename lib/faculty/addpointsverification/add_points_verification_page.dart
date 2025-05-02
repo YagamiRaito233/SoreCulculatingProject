@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:score_culculating_project/faculty/addpointsverification/add_points_verification_activity_details.dart';
+import 'add_points_verification_activity_details.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:score_culculating_project/faculty/Interface/ApiService.dart';
 
 class AddPointsVerificationPage extends StatefulWidget {
   const AddPointsVerificationPage({super.key});
 
   @override
-  State<AddPointsVerificationPage> createState() =>
-      _AddPointsVerificationPageState();
+  State<AddPointsVerificationPage> createState() => _AddPointsVerificationPageState();
 
   // 添加公共方法来获取已审批的活动列表
   Future<List<Map<String, dynamic>>> getApprovedActivities() async {
@@ -19,62 +20,7 @@ class AddPointsVerificationPage extends StatefulWidget {
 
 class _AddPointsVerificationPageState extends State<AddPointsVerificationPage> {
   // 未审核的活动列表
-  List<Map<String, dynamic>> unverifiedActivities = [
-    {
-      'name': '迎新晚会',
-      'organization': 'A组织',
-      'date': '2025.4.1',
-      'time': '14:00:01',
-      'isApproved': false,
-      'status': '未审批',
-      'pointsList': [
-        {'name': '张三', 'points': 12.5},
-        {'name': '李四', 'points': 8.0},
-      ]
-    },
-    {
-      'name': '篮球比赛',
-      'organization': '体育协会',
-      'date': '2025.3.15',
-      'time': '13:30:00',
-      'isApproved': false,
-      'status': '未审批',
-      'pointsList': [
-        {'name': '王五', 'points': 5.0},
-        {'name': '赵六', 'points': 7.5},
-      ]
-    },
-    {
-      'name': '校园文化节',
-      'organization': '艺术团',
-      'date': '2025.5.20',
-      'time': '09:00:00',
-      'isApproved': false,
-      'status': '未审批',
-      'pointsList': [
-        {'name': '孙七', 'points': 6.0},
-        {'name': '周八', 'points': 4.0},
-      ]
-    },
-    {
-      'name': '校园招聘会',
-      'organization': '就业指导中心',
-      'date': '2025.6.10',
-      'time': '10:00:00',
-      'isApproved': false,
-      'status': '未审批',
-      'pointsList': [
-        {'name': '吴九', 'points': 3.0},
-        {'name': '郑十', 'points': 2.0},
-      ]
-    },
-  ];
-
-  // 获取已审批的活动列表
-  List<Map<String, dynamic>> getApprovedActivities() {
-    return unverifiedActivities.where((activity) => activity['isApproved']).toList();
-  }
-
+  List<Map<String, dynamic>> unverifiedActivities = [];
   // 当前选择的审批状态
   String _selectedApprovalStatus = '全部';
   // 当前选择的时间范围
@@ -87,17 +33,38 @@ class _AddPointsVerificationPageState extends State<AddPointsVerificationPage> {
   @override
   void initState() {
     super.initState();
-    // 初始化过滤后的活动列表
-    _filteredActivities = [...unverifiedActivities];
-    // 加载所有活动的审批状态
-    loadAllApprovalStatus();
+    _loadActivities();
   }
 
-  @override
-  void dispose() {
-    // 当页面销毁时，返回已审批活动列表
-    Navigator.pop(context, getApprovedActivities());
-    super.dispose();
+  Future<void> _loadActivities() async {
+    try {
+      await ApiService().fetchAndSaveActivities();
+      final prefs = await SharedPreferences.getInstance();
+      final List<String>? saved = prefs.getStringList('activities');
+      if (saved != null) {
+        setState(() {
+          unverifiedActivities = saved.map((e) => jsonDecode(e)).cast<Map<String, dynamic>>().toList();
+          // 处理可能为null的字段
+          for (var activity in unverifiedActivities) {
+            activity['organization'] = activity['organization']?? '未知组织';
+            activity['date'] = activity['date']?? '未知日期';
+            activity['time'] = activity['time']?? '未知时间';
+            activity['isApproved'] = activity['isApproved']?? false;
+            activity['status'] = activity['status']?? '未审批';
+            activity['rejectReason'] = activity['rejectReason'];
+          }
+          _filteredActivities = [...unverifiedActivities];
+        });
+      }
+    } catch (e) {
+      // 处理获取活动数据时的错误，例如显示错误提示
+      print('获取活动数据失败: $e');
+    }
+  }
+
+  // 获取已审批的活动列表
+  List<Map<String, dynamic>> getApprovedActivities() {
+    return unverifiedActivities.where((activity) => activity['isApproved']?? false).toList();
   }
 
   // 加载所有活动的审批状态
@@ -114,7 +81,7 @@ class _AddPointsVerificationPageState extends State<AddPointsVerificationPage> {
         }
       }
     }
-    // 确保在组件挂载后调用 setState
+    // 确保在组件挂载后调用setState
     if (mounted) {
       setState(() {
         _filteredActivities = [...unverifiedActivities];
@@ -127,8 +94,8 @@ class _AddPointsVerificationPageState extends State<AddPointsVerificationPage> {
     setState(() {
       _filteredActivities = unverifiedActivities.where((activity) {
         bool matchesApproval = _selectedApprovalStatus == '全部' ||
-            (_selectedApprovalStatus == '已审批' && activity['isApproved']) ||
-            (_selectedApprovalStatus == '未审批' &&!activity['isApproved']);
+            (_selectedApprovalStatus == '已审批' && (activity['isApproved']?? false)) ||
+            (_selectedApprovalStatus == '未审批' &&!(activity['isApproved']?? false));
         bool matchesTime = _selectedTimeRange == '全部' || activity['status'] == _selectedTimeRange;
         bool matchesCollege = _selectedCollege == '全部' || activity['organization'] == _selectedCollege;
         return matchesApproval && matchesTime && matchesCollege;
@@ -162,7 +129,7 @@ class _AddPointsVerificationPageState extends State<AddPointsVerificationPage> {
             const SizedBox(height: 8),
             // 显示未核验活动的数量
             Text(
-              '${unverifiedActivities.where((activity) =>!activity['isApproved']).length}个未核验活动',
+              '${unverifiedActivities.where((activity) =>!(activity['isApproved']?? false)).length}个未核验活动',
               style: const TextStyle(color: Colors.red),
             ),
             const SizedBox(height: 16),
@@ -311,13 +278,13 @@ class _AddPointsVerificationPageState extends State<AddPointsVerificationPage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: activity['isApproved']? Colors.green[100] : Colors.red[100],
+                            color: (activity['isApproved']?? false)? Colors.green[100] : Colors.red[100],
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            activity['status'],
+                            (activity['isApproved']?? false)? '已审批' : '未审批',
                             style: TextStyle(
-                                color: activity['isApproved']? Colors.green : Colors.red,
+                                color: (activity['isApproved']?? false)? Colors.green : Colors.red,
                                 fontWeight: FontWeight.bold
                             ),
                           ),

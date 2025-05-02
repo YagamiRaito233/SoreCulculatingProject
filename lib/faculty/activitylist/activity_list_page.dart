@@ -1,8 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:score_culculating_project/faculty/activitylist/activity_detail_page.dart';
+import 'activity_detail_page.dart';
+import 'package:score_culculating_project/faculty/Interface/ApiService.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
-class ActivityListPage extends StatelessWidget {
+class ActivityListPage extends StatefulWidget {
   const ActivityListPage({super.key});
+
+  @override
+  State<ActivityListPage> createState() => _ActivityListPageState();
+}
+
+class _ActivityListPageState extends State<ActivityListPage> {
+  List<Map<String, dynamic>> activities = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadActivities();
+  }
+
+  Future<void> _loadActivities() async {
+    await ApiService().fetchAndSaveActivities();
+    final prefs = await SharedPreferences.getInstance();
+    final List<String>? saved = prefs.getStringList('activities');
+    if (saved != null) {
+      setState(() {
+        activities = saved.map((e) => jsonDecode(e)).cast<Map<String, dynamic>>().toList();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,13 +64,14 @@ class ActivityListPage extends StatelessWidget {
             ),
             Expanded(
               child: ListView.builder(
-                itemCount: 1,
+                itemCount: activities.length,
                 itemBuilder: (context, index) {
+                  final activity = activities[index];
                   return GestureDetector(
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ActivityDetailPage(),
+                        builder: (context) => ActivityDetailPage(activity: activity),
                       ),
                     ),
                     child: Container(
@@ -60,14 +88,14 @@ class ActivityListPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "迎新晚会",
+                                activity['name'],
                                 style: TextStyle(fontSize: 18),
                               ),
                               SizedBox(height: 8),
                               Row(
                                 children: [
                                   Text(
-                                    "A组织 A同学",
+                                    '${activity['organization']} ${activity['time']}',
                                     style: TextStyle(fontSize: 14),
                                   ),
                                 ],
@@ -75,7 +103,7 @@ class ActivityListPage extends StatelessWidget {
                             ],
                           ),
                           Text(
-                            "2025.4.1 14:00:01",
+                            '${activity['date']} ${activity['time']}',
                             style: TextStyle(fontSize: 14),
                           ),
                         ],

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:score_culculating_project/faculty/addpointsverification/add_points_approval_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,40 +14,43 @@ class AddPointsVerificationActivityDetails extends StatefulWidget {
 class _AddPointsVerificationActivityDetailsState extends State<AddPointsVerificationActivityDetails> {
   bool isApproved = false;
   List<Map<String, dynamic>> pointsList = [];
+  String? rejectReason; // 定义为可空类型
 
   @override
   void initState() {
     super.initState();
-    pointsList = widget.activity['pointsList']?? [];
-    isApproved = widget.activity['isApproved']?? false;
+    pointsList = widget.activity['pointsList'] ?? [];
+    isApproved = widget.activity['isApproved'] ?? false;
     loadApprovalStatus();
   }
 
   void loadApprovalStatus() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      isApproved = prefs.getBool('${widget.activity['name']}_isApproved')?? false;
-      if (!isApproved) {
-        widget.activity['rejectReason'] = prefs.getString('${widget.activity['name']}_rejectReason');
-      }
+      isApproved = prefs.getBool('${widget.activity['name']}_isApproved') ?? false;
+      rejectReason = prefs.getString('${widget.activity['name']}_rejectReason');
       widget.activity['status'] = '已审批'; // 不管是否通过，都设为已审批
     });
   }
 
-  void _deletePoint(int index) {
+  void _deletePoint(int index) async { // 将方法标记为异步方法
     setState(() {
       pointsList.removeAt(index);
-      // 这里可以添加保存更新后加分列表数据到本地存储的逻辑，例如：
-      // final prefs = await SharedPreferences.getInstance();
-      // prefs.setString('${widget.activity['name']}_pointsList', jsonEncode(pointsList));
     });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('${widget.activity['name']}_pointsList', jsonEncode(pointsList));
+      print('加分列表数据已保存到本地存储');
+    } catch (e) {
+      print('保存加分列表数据到本地存储时出错: $e');
+    }
   }
 
   void saveApprovalStatus() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('${widget.activity['name']}_isApproved', isApproved);
-    if (!isApproved && widget.activity['rejectReason']!= null) {
-      await prefs.setString('${widget.activity['name']}_rejectReason', widget.activity['rejectReason']);
+    if (!isApproved && rejectReason != null) {
+      await prefs.setString('${widget.activity['name']}_rejectReason', rejectReason!);
     }
     widget.activity['status'] = '已审批'; // 保存时也更新状态
   }
@@ -171,13 +175,13 @@ class _AddPointsVerificationActivityDetailsState extends State<AddPointsVerifica
                           Text(
                             isApproved
                                 ? '已审批'
-                                : widget.activity['rejectReason']!= null
-                                ? '活动未通过审批，原因：${widget.activity['rejectReason']}'
+                                : rejectReason != null
+                                ? '活动未通过审批，原因：$rejectReason'
                                 : '您还未审批！',
                             style: TextStyle(
                               color: isApproved
                                   ? Colors.green
-                                  : widget.activity['rejectReason']!= null
+                                  : rejectReason != null
                                   ? Colors.red
                                   : Colors.red,
                             ),
@@ -196,12 +200,9 @@ class _AddPointsVerificationActivityDetailsState extends State<AddPointsVerifica
                                         onApprovalComplete: (bool approved, String reason) {
                                           setState(() {
                                             isApproved = approved;
-                                            if (!approved) {
-                                              widget.activity['rejectReason'] = reason;
-                                            } else {
-                                              widget.activity['rejectReason'] = null;
-                                            }
+                                            rejectReason = reason.isEmpty ? null : reason;
                                             widget.activity['isApproved'] = approved;
+                                            widget.activity['rejectReason'] = rejectReason;
                                             saveApprovalStatus();
                                           });
                                         },
