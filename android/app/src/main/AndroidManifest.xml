@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
+<<<<<<< HEAD
         android:label="points"
+=======
+        android:label="score_culculating_project"
+>>>>>>> bc0ebb182ea8dd7ea6b772fdec484efcaf731fe7
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

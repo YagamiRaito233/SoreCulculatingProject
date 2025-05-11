@@ -1,6 +1,6 @@
-# points
+# score_culculating_project
 
-project daily points
+A new Flutter project.
 
 ## Getting Started
 
