@@ -1,6 +1,6 @@
 import 'dart:ffi';
 import 'package:flutter/material.dart';
-import 'package:points/school_league_committee/add_account_page.dart';
+import 'package:points/school_committee/add_account_page.dart';
 
 class OrganizationalAccountManagementPage extends StatefulWidget {
   const OrganizationalAccountManagementPage({super.key, required this.title});

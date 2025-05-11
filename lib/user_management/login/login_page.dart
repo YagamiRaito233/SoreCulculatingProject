@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:points/login/auth_provider.dart';
+import 'package:points/user_management/login/auth_provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.title});
@@ -84,7 +84,7 @@ class _LoginContentState extends State<LoginContent> {
     super.dispose();
   }
 
-  // 都是layout，只需更改245行的用户协议跳转
+  // 都是layout，只需更改247行的用户协议跳转
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(

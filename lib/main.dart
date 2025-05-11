@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:points/login/login_page.dart';
-import 'package:points/login/bind_phone_page.dart';
-import 'package:points/login/forget_password_page.dart';
-import 'package:points/login/find_password_page.dart';
-import 'package:points/login/auth_provider.dart';
-import 'package:points/school_league_committee/home_page.dart';
-import 'package:points/school_league_committee/organizational_account_management_page.dart';
-import 'package:points/school_league_committee/event_approval_page.dart';
-import 'package:points/school_league_committee/data_maintenance_page.dart';
-import 'package:points/school_league_committee/data_import_export_page.dart';
+import 'package:points/user_management/login/login_page.dart';
+import 'package:points/user_management/login/bind_phone_page.dart';
+import 'package:points/user_management/login/forget_password_page.dart';
+import 'package:points/user_management/login/find_password_page.dart';
+import 'package:points/user_management/login/auth_provider.dart';
+import 'package:points/school_committee/home_page.dart';
+import 'package:points/school_committee/organizational_account_management_page.dart';
+import 'package:points/school_committee/event_approval_page.dart';
+import 'package:points/school_committee/data_maintenance_page.dart';
+import 'package:points/school_committee/data_import_export_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
